@@ -315,6 +315,29 @@ namespace WiiTUIO.Provider
         {
             try
             {
+                string[] appStringsToMatch = null;
+                IntPtr currentForegroundWindow = UIHelpers.GetForegroundWindow();
+                if (currentForegroundWindow != null)
+                {
+                    string currentWindowTitle = UIHelpers.GetWindowTextRaw(currentForegroundWindow);
+                    appStringsToMatch = new string[]
+                    {
+                        evt.Process.MainModule.FileVersionInfo.FileDescription,
+                        evt.Process.MainModule.FileVersionInfo.OriginalFilename,
+                        evt.Process.MainModule.FileVersionInfo.FileName,
+                        currentWindowTitle,
+                    };
+                }
+                else
+                {
+                    appStringsToMatch = new string[]
+                    {
+                        evt.Process.MainModule.FileVersionInfo.FileDescription,
+                        evt.Process.MainModule.FileVersionInfo.OriginalFilename,
+                        evt.Process.MainModule.FileVersionInfo.FileName,
+                    };
+                }
+
                 string appStringToMatch = evt.Process.MainModule.FileVersionInfo.FileDescription + evt.Process.MainModule.FileVersionInfo.OriginalFilename + evt.Process.MainModule.FileVersionInfo.FileName;
 
                 bool keymapFound = false;
@@ -326,11 +349,25 @@ namespace WiiTUIO.Provider
                     for (int i = 0; i < appList.Length && !keymapFound; i++)
                     {
                         string search = appList[i];
-
-                        if (appStringToMatch.ToLower().Replace(" ", "").Contains(search.ToLower().Replace(" ", "")))
+                        for (int j = 0; j < appStringsToMatch.Length && !keymapFound; j++)
                         {
-                            this.applicationKeymap = this.loadKeyMap(searchSetting.Keymap);
-                            keymapFound = true;
+                            appStringToMatch = appStringsToMatch[j];
+                            if (appStringToMatch != null)
+                            {
+                                const int WINDOW_TITLE_IDX = 3;
+                                // Match executable filename or file description
+                                if (j != WINDOW_TITLE_IDX && appStringToMatch.ToLower().Replace(" ", "").Equals(search.ToLower().Replace(" ", "")))
+                                {
+                                    this.applicationKeymap = this.loadKeyMap(searchSetting.Keymap);
+                                    keymapFound = true;
+                                }
+                                // Check for substring in current foreground window title
+                                else if (j == WINDOW_TITLE_IDX && appStringToMatch.ToLower().Replace(" ", "").Contains(search.ToLower().Replace(" ", "")))
+                                {
+                                    this.applicationKeymap = this.loadKeyMap(searchSetting.Keymap);
+                                    keymapFound = true;
+                                }
+                            }
                         }
                     }
                 }
