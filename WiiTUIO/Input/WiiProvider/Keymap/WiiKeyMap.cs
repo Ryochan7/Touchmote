@@ -484,10 +484,10 @@ namespace WiiTUIO.Provider
                 }
 
                 float delta = totalAccel - lastAccel;
-
-                if (this.config.ContainsKey(offscreen + "Shake"))
+                tempBtnKey = string.Concat(offscreen, "Shake");
+                if (this.config.ContainsKey(tempBtnKey))
                 {
-                    ProcessShake("Shake", offscreen + "Shake", delta,
+                    ProcessShake("Shake", tempBtnKey, delta,
                         ref ShakeCounter, ref lastShakeTime,
                         (float)Settings.Default.shake_threshold,
                         Settings.Default.shake_count,
@@ -768,10 +768,10 @@ namespace WiiTUIO.Provider
                 }
 
                 float delta = totalAccel - nunLastAccel;
-
-                if (this.config.ContainsKey(offscreen + "Nunchuk.Shake"))
+                tempBtnKey = string.Concat(offscreen, "Nunchuk.Shake");
+                if (this.config.ContainsKey(tempBtnKey))
                 {
-                    ProcessNunchukShake("Nunchuk.Shake", offscreen + "Nunchuk.Shake", delta,
+                    ProcessNunchukShake("Nunchuk.Shake", tempBtnKey, delta,
                         ref nunShakeCounter, ref nunLastShakeTime,
                         (float)Settings.Default.shake_nunchukthreshold,
                         Settings.Default.shake_nunchukcount,
