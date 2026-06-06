@@ -56,7 +56,7 @@ namespace WiiTUIO
             allInputs.Add(new KeymapInput(KeymapInputSource.WIIMOTE, "Tilt Y+", "AccelY+", true, true, false));
             allInputs.Add(new KeymapInput(KeymapInputSource.WIIMOTE, "Tilt Z-", "AccelZ-", true, true, false));
             allInputs.Add(new KeymapInput(KeymapInputSource.WIIMOTE, "Tilt Z+", "AccelZ+", true, true, false));
-            //allInputs.Add(new KeymapInput(KeymapInputSource.WIIMOTE, "Shake", "Shake"));
+            allInputs.Add(new KeymapInput(KeymapInputSource.WIIMOTE, "Shake", "Shake"));
             //allInputs.Add(new KeymapInput(KeymapInputSource.WIIMOTE, "Extension", "Extension"));
 
             allInputs.Add(new KeymapInput(KeymapInputSource.NUNCHUK, "C", "Nunchuk.C"));
@@ -73,7 +73,7 @@ namespace WiiTUIO
             allInputs.Add(new KeymapInput(KeymapInputSource.NUNCHUK, "Tilt Y+", "Nunchuk.AccelY+", true, true, false));
             allInputs.Add(new KeymapInput(KeymapInputSource.NUNCHUK, "Tilt Z-", "Nunchuk.AccelZ-", true, true, false));
             allInputs.Add(new KeymapInput(KeymapInputSource.NUNCHUK, "Tilt Z+", "Nunchuk.AccelZ+", true, true, false));
-            //allInputs.Add(new KeymapInput(KeymapInputSource.NUNCHUK, "Shake", "Nunchuk.Shake"));
+            allInputs.Add(new KeymapInput(KeymapInputSource.NUNCHUK, "Shake", "Nunchuk.Shake"));
 
             allInputs.Add(new KeymapInput(KeymapInputSource.CLASSIC, "Left", "Classic.Left"));
             allInputs.Add(new KeymapInput(KeymapInputSource.CLASSIC, "Right", "Classic.Right"));
@@ -125,7 +125,7 @@ namespace WiiTUIO
             allInputs.Add(new KeymapInput(KeymapInputSource.WIIMOTE, "Tilt Y+", "OffScreen.AccelY+", true, true, false, false));
             allInputs.Add(new KeymapInput(KeymapInputSource.WIIMOTE, "Tilt Z-", "OffScreen.AccelZ-", true, true, false, false));
             allInputs.Add(new KeymapInput(KeymapInputSource.WIIMOTE, "Tilt Z+", "OffScreen.AccelZ+", true, true, false, false));
-            //allInputs.Add(new KeymapInput(KeymapInputSource.WIIMOTE, "Shake", "OffScreen.Shake", false));
+            allInputs.Add(new KeymapInput(KeymapInputSource.WIIMOTE, "Shake", "OffScreen.Shake", false));
             //allInputs.Add(new KeymapInput(KeymapInputSource.WIIMOTE, "Extension", "OffScreen.Extension", false));
 
             allInputs.Add(new KeymapInput(KeymapInputSource.NUNCHUK, "C", "OffScreen.Nunchuk.C", false));
@@ -142,7 +142,7 @@ namespace WiiTUIO
             allInputs.Add(new KeymapInput(KeymapInputSource.NUNCHUK, "Tilt Y+", "OffScreen.Nunchuk.AccelY+", true, true, false, false));
             allInputs.Add(new KeymapInput(KeymapInputSource.NUNCHUK, "Tilt Z-", "OffScreen.Nunchuk.AccelZ-", true, true, false, false));
             allInputs.Add(new KeymapInput(KeymapInputSource.NUNCHUK, "Tilt Z+", "OffScreen.Nunchuk.AccelZ+", true, true, false, false));
-            //allInputs.Add(new KeymapInput(KeymapInputSource.NUNCHUK, "Shake", "OffScreen.Nunchuk.Shake", false));
+            allInputs.Add(new KeymapInput(KeymapInputSource.NUNCHUK, "Shake", "OffScreen.Nunchuk.Shake", false));
 
             allInputs.Add(new KeymapInput(KeymapInputSource.CLASSIC, "Left", "OffScreen.Classic.Left", false));
             allInputs.Add(new KeymapInput(KeymapInputSource.CLASSIC, "Right", "OffScreen.Classic.Right", false));
@@ -350,6 +350,9 @@ namespace WiiTUIO
             allOutputs.Add(new KeymapOutput(KeymapOutputType.XINPUT, "Right Stick Down", "360.stickrdown", true, true, false, false));
             allOutputs.Add(new KeymapOutput(KeymapOutputType.XINPUT, "Right Stick Left", "360.stickrleft", true, true, false, false));
             allOutputs.Add(new KeymapOutput(KeymapOutputType.XINPUT, "Right Stick Right", "360.stickrright", true, true, false, false));
+            allOutputs.Add(new KeymapOutput(KeymapOutputType.XINPUT, "Rumble On Hold", "360.rumble"));
+            allOutputs.Add(new KeymapOutput(KeymapOutputType.XINPUT, "Rumble Once", "360.rumble1"));
+            allOutputs.Add(new KeymapOutput(KeymapOutputType.XINPUT, "Rumble M. Gun", "360.rumble2"));
             allOutputs.Add(new KeymapOutput(KeymapOutputType.XINPUT, "Left Trigger", "360.triggerl", true, true, false, false));
             allOutputs.Add(new KeymapOutput(KeymapOutputType.XINPUT, "Right Trigger", "360.triggerr", true, true, false, false));
             allOutputs.Add(new KeymapOutput(KeymapOutputType.XINPUT, "Left Bumper", "360.bumperl"));

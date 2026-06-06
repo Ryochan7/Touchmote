@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using WiiTUIO.Provider;
 using Nefarius.ViGEm.Client.Targets;
@@ -51,6 +52,10 @@ namespace WiiTUIO.Output.Handlers.Xinput
 
         public Action<byte, byte> OnRumble { get; set; }
 
+        private bool rumble1Running = false;
+        private bool rumble2Running = false;
+        private readonly object rumbleLock = new object();
+
         public ViGEmHandler(long id)
         {
             this.id = id;
@@ -99,6 +104,47 @@ namespace WiiTUIO.Output.Handlers.Xinput
                 string button = lowerKey.Substring(4);
                 switch (button)
                 {
+                    case "rumble":
+                        OnRumble?.Invoke(255, 255);
+                        break;
+                    case "rumble1":
+                        lock (rumbleLock)
+                        {
+                            if (!rumble1Running)
+                            {
+                                rumble1Running = true;
+                                Thread rumbleThread = new Thread(() =>
+                                {
+                                    OnRumble?.Invoke(255, 255);
+                                    Thread.Sleep(110);
+                                    OnRumble?.Invoke(0, 0);
+
+                                    rumble1Running = false;
+                                });
+                                rumbleThread.Start();
+                            }
+                        }
+                        break;
+                    case "rumble2":
+                        lock (rumbleLock)
+                        {
+                            if (!rumble2Running)
+                            {
+                                rumble2Running = true;
+                                Thread rumbleThread = new Thread(() =>
+                                {
+                                    while (rumble2Running)
+                                    {
+                                        OnRumble?.Invoke(255, 255);
+                                        Thread.Sleep(Settings.Default.mGunIntensity10to200);
+                                        OnRumble?.Invoke(0, 0);
+                                        Thread.Sleep(Settings.Default.mGunIntensity10to200);
+                                    }
+                                });
+                                rumbleThread.Start();
+                            }
+                        }
+                        break;
                     case "triggerr":
                         device.Cont.RightTrigger = 255;
                         break;
@@ -190,6 +236,19 @@ namespace WiiTUIO.Output.Handlers.Xinput
                 string button = lowerKey.Substring(4);
                 switch (button)
                 {
+                    case "rumble":
+                        OnRumble?.Invoke(0, 0);
+                        break;
+                    case "rumble1":
+                        OnRumble?.Invoke(0, 0);
+                        break;
+                    case "rumble2":
+                        lock (rumbleLock)
+                        {
+                            rumble2Running = false;
+                        }
+                        OnRumble?.Invoke(0, 0);
+                        break;
                     case "triggerr":
                         device.Cont.RightTrigger = 0;
                         break;

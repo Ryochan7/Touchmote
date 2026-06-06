@@ -640,6 +640,94 @@ namespace WiiTUIO.Properties
                 OnPropertyChanged("touch_edgeGestureHelperRelease");
             }
         }
+
+        private int _shake_init_stabilization_frames = 10;
+        public int shake_init_stabilization_frames
+        {
+            get { return _shake_init_stabilization_frames; }
+            set
+            {
+                _shake_init_stabilization_frames = value;
+                OnPropertyChanged("shake_init_stabilization_frames");
+            }
+        }
+
+        private double _shake_threshold = 0.3;
+        public double shake_threshold
+        {
+            get { return _shake_threshold; }
+            set
+            {
+                _shake_threshold = value;
+                OnPropertyChanged("shake_threshold");
+            }
+        }
+
+        private int _shake_count = 2;
+        public int shake_count
+        {
+            get { return _shake_count; }
+            set
+            {
+                _shake_count = value;
+                OnPropertyChanged("shake_count");
+            }
+        }
+
+        private int _shake_maxTimeInBetween = 500;
+        public int shake_maxTimeInBetween
+        {
+            get { return _shake_maxTimeInBetween; }
+            set
+            {
+                _shake_maxTimeInBetween = value;
+                OnPropertyChanged("shake_maxTimeInBetween");
+            }
+        }
+
+        private int _shake_pressedTime = 200;
+        public int shake_pressedTime
+        {
+            get { return _shake_pressedTime; }
+            set
+            {
+                _shake_pressedTime = value;
+                OnPropertyChanged("shake_pressedTime");
+            }
+        }
+
+        private double _shake_nunchukthreshold = 0.2;
+        public double shake_nunchukthreshold
+        {
+            get { return _shake_nunchukthreshold; }
+            set
+            {
+                _shake_nunchukthreshold = value;
+                OnPropertyChanged("shake_nunchukthreshold");
+            }
+        }
+
+        private int _shake_nunchukcount = 2;
+        public int shake_nunchukcount
+        {
+            get { return _shake_nunchukcount; }
+            set
+            {
+                _shake_nunchukcount = value;
+                OnPropertyChanged("shake_nunchukcount");
+            }
+        }
+
+        private int _mGunIntensity10to200 = 90;
+        public int mGunIntensity10to200
+        {
+            get { return _mGunIntensity10to200; }
+            set
+            {
+                _mGunIntensity10to200 = value;
+                OnPropertyChanged("mGunIntensity10to200");
+            }
+        }
         
         private int _xinput_rumbleThreshold_big = 200;
         public int xinput_rumbleThreshold_big

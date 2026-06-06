@@ -28,9 +28,23 @@ namespace WiiTUIO.Provider
         private long id;
         private bool prevOffScreen = false;
 
+        private int ShakeCounter = 0;        
+        private DateTime lastShakeTime;
+        private float lastAccel;
         private float smoothedAccelX;
         private float smoothedAccelY;
         private float smoothedAccelZ;
+
+        private int nunShakeCounter = 0;        
+        private DateTime nunLastShakeTime;
+        private float nunLastAccel;
+        private float smoothedNunAccelX;
+        private float smoothedNunAccelY;
+        private float smoothedNunAccelZ;
+
+        private int STABILIZATION_FRAMES = Settings.Default.shake_init_stabilization_frames; // 10 stabilization frames avoid ghost shake when turning wiimote on off several times when using very low threshold
+        private int wiimoteStabilizationCounter = 0;
+        private int nunchukStabilizationCounter = 0;
 
         private Dictionary<string, bool> PressedButtons = new Dictionary<string, bool>()
         {
@@ -42,6 +56,7 @@ namespace WiiTUIO.Provider
             {"AccelY-",false},
             {"AccelZ+",false},
             {"AccelZ-",false},
+            {"Shake",false},
             {"Nunchuk.StickUp",false},
             {"Nunchuk.StickDown",false},
             {"Nunchuk.StickLeft",false},
@@ -52,6 +67,7 @@ namespace WiiTUIO.Provider
             {"Nunchuk.AccelY-",false},
             {"Nunchuk.AccelZ+",false},
             {"Nunchuk.AccelZ-",false},
+            {"Nunchuk.Shake",false},
             {"Classic.StickLUp",false},
             {"Classic.StickLDown",false},
             {"Classic.StickLLeft",false},
@@ -121,6 +137,88 @@ namespace WiiTUIO.Provider
             if (this.OnRumble != null)
             {
                 OnRumble(big > Settings.Default.xinput_rumbleThreshold_big || small > Settings.Default.xinput_rumbleThreshold_small);
+            }
+        }
+
+        private void ProcessShake(
+            string key,
+            string fullKey,
+            float delta,
+            ref int counter,
+            ref DateTime lastTime,
+            float threshold,
+            int count,
+            int maxTimeInBetween,
+            int pressedTime)
+        {
+            var now = DateTime.Now;
+
+            if (!PressedButtons[key])
+            {
+                if (Math.Abs(delta) > threshold)
+                {
+                    if ((now - lastTime).TotalMilliseconds < maxTimeInBetween)
+                    {
+                        counter++;
+                        if (counter >= count)
+                        {
+                            PressedButtons[key] = true;
+                            executeButtonDown(fullKey);
+                            counter = 0;
+                        }
+                    }
+                    else
+                    {
+                        counter = 0;
+                    }
+                    lastTime = now;
+                }
+            }
+            else if ((now - lastTime).TotalMilliseconds > pressedTime)
+            {
+                PressedButtons[key] = false;
+                executeButtonUp(fullKey);
+            }
+        }
+
+        private void ProcessNunchukShake(
+            string key,
+            string fullKey,
+            float delta,
+            ref int counter,
+            ref DateTime lastTime,
+            float threshold,
+            int count,
+            int maxTimeInBetween,
+            int pressedTime)
+        {
+            var now = DateTime.Now;
+
+            if (!PressedButtons[key])
+            {
+                if (Math.Abs(delta) > threshold)
+                {
+                    if ((now - lastTime).TotalMilliseconds < maxTimeInBetween)
+                    {
+                        counter++;
+                        if (counter >= count)
+                        {
+                            PressedButtons[key] = true;
+                            executeButtonDown(fullKey);
+                            counter = 0;
+                        }
+                    }
+                    else
+                    {
+                        counter = 0;
+                    }
+                    lastTime = now;
+                }
+            }
+            else if ((now - lastTime).TotalMilliseconds > pressedTime)
+            {
+                PressedButtons[key] = false;
+                executeButtonUp(fullKey);
             }
         }
 
@@ -371,6 +469,34 @@ namespace WiiTUIO.Provider
                     this.executeButtonUp(tempBtnKey);
                 }
             }
+            {
+                var now = DateTime.Now;
+                smoothedAccelX = smoothedAccelX * 0.9f + accelState.Values.X * 0.1f;
+                smoothedAccelY = smoothedAccelY * 0.9f + accelState.Values.Y * 0.1f;
+                smoothedAccelZ = smoothedAccelZ * 0.9f + accelState.Values.Z * 0.1f;
+                float totalAccel = (float)Math.Sqrt(Math.Pow(smoothedAccelX, 2) + Math.Pow(smoothedAccelY, 2) + Math.Pow(smoothedAccelZ, 2));
+                                
+                if (wiimoteStabilizationCounter < STABILIZATION_FRAMES)
+                {
+                    wiimoteStabilizationCounter++;
+                    lastAccel = totalAccel;
+                    return;
+                }
+
+                float delta = totalAccel - lastAccel;
+
+                if (this.config.ContainsKey(offscreen + "Shake"))
+                {
+                    ProcessShake("Shake", offscreen + "Shake", delta,
+                        ref ShakeCounter, ref lastShakeTime,
+                        (float)Settings.Default.shake_threshold,
+                        Settings.Default.shake_count,
+                        Settings.Default.shake_maxTimeInBetween,
+                        Settings.Default.shake_pressedTime);
+                }
+
+                lastAccel = totalAccel;
+            }
         }
 
         public void updateNunchuk(NunchukState nunchuk)
@@ -484,21 +610,21 @@ namespace WiiTUIO.Provider
             tempBtnKey = string.Concat(offscreen, "Nunchuk.AccelX+");
             if (this.config.TryGetValue(tempBtnKey, out outConfig))
             {
-                if (accelState.Values.X > 0)
+                if (smoothedNunAccelX > 0)
                 {
-                    updateStickHandlers(outConfig, accelState.Values.X );
+                    updateStickHandlers(outConfig, smoothedNunAccelX );
                 }
-                else if (accelState.Values.X == 0)
+                else if (smoothedNunAccelX == 0)
                 {
                     updateStickHandlers(outConfig, 0);
                 }
 
-                if (accelState.Values.X > outConfig.Threshold && !PressedButtons["Nunchuk.AccelX+"])
+                if (smoothedNunAccelX > outConfig.Threshold && !PressedButtons["Nunchuk.AccelX+"])
                 {
                     PressedButtons["Nunchuk.AccelX+"] = true;
                     this.executeButtonDown(tempBtnKey);
                 }
-                else if (accelState.Values.X < outConfig.Threshold && PressedButtons["Nunchuk.AccelX+"])
+                else if (smoothedNunAccelX < outConfig.Threshold && PressedButtons["Nunchuk.AccelX+"])
                 {
                     PressedButtons["Nunchuk.AccelX+"] = false;
                     this.executeButtonUp(tempBtnKey);
@@ -508,21 +634,21 @@ namespace WiiTUIO.Provider
             tempBtnKey = string.Concat(offscreen, "Nunchuk.AccelX-");
             if (this.config.TryGetValue(tempBtnKey, out outConfig))
             {
-                if (accelState.Values.X < 0)
+                if (smoothedNunAccelX < 0)
                 {
-                    updateStickHandlers(outConfig, accelState.Values.X * -1);
+                    updateStickHandlers(outConfig, smoothedNunAccelX * -1);
                 }
-                else if (accelState.Values.X == 0)
+                else if (smoothedNunAccelX == 0)
                 {
                     updateStickHandlers(outConfig, 0);
                 }
 
-                if (accelState.Values.X * -1 > outConfig.Threshold && !PressedButtons["Nunchuk.AccelX-"])
+                if (smoothedNunAccelX * -1 > outConfig.Threshold && !PressedButtons["Nunchuk.AccelX-"])
                 {
                     PressedButtons["Nunchuk.AccelX-"] = true;
                     this.executeButtonDown(tempBtnKey);
                 }
-                else if (accelState.Values.X * -1 < outConfig.Threshold && PressedButtons["Nunchuk.AccelX-"])
+                else if (smoothedNunAccelX * -1 < outConfig.Threshold && PressedButtons["Nunchuk.AccelX-"])
                 {
                     PressedButtons["Nunchuk.AccelX-"] = false;
                     this.executeButtonUp(tempBtnKey);
@@ -532,21 +658,21 @@ namespace WiiTUIO.Provider
             tempBtnKey = string.Concat(offscreen, "Nunchuk.AccelY+");
             if (this.config.TryGetValue(tempBtnKey, out outConfig))
             {
-                if (accelState.Values.Y > 0)
+                if (smoothedNunAccelY > 0)
                 {
-                    updateStickHandlers(outConfig, accelState.Values.Y);
+                    updateStickHandlers(outConfig, smoothedNunAccelY);
                 }
-                else if (accelState.Values.Y == 0)
+                else if (smoothedNunAccelY == 0)
                 {
                     updateStickHandlers(outConfig, 0);
                 }
 
-                if (accelState.Values.Y > outConfig.Threshold && !PressedButtons["Nunchuk.AccelY+"])
+                if (smoothedNunAccelY > outConfig.Threshold && !PressedButtons["Nunchuk.AccelY+"])
                 {
                     PressedButtons["Nunchuk.AccelY+"] = true;
                     this.executeButtonDown(tempBtnKey);
                 }
-                else if (accelState.Values.Y < outConfig.Threshold && PressedButtons["Nunchuk.AccelY+"])
+                else if (smoothedNunAccelY < outConfig.Threshold && PressedButtons["Nunchuk.AccelY+"])
                 {
                     PressedButtons["Nunchuk.AccelY+"] = false;
                     this.executeButtonUp(tempBtnKey);
@@ -556,21 +682,21 @@ namespace WiiTUIO.Provider
             tempBtnKey = string.Concat(offscreen, "Nunchuk.AccelY-");
             if (this.config.TryGetValue(tempBtnKey, out outConfig))
             {
-                if (accelState.Values.Y < 0)
+                if (smoothedNunAccelY < 0)
                 {
-                    updateStickHandlers(outConfig, accelState.Values.Y * -1);
+                    updateStickHandlers(outConfig, smoothedNunAccelY * -1);
                 }
-                else if (accelState.Values.Y == 0)
+                else if (smoothedNunAccelY == 0)
                 {
                     updateStickHandlers(outConfig, 0);
                 }
 
-                if (accelState.Values.Y * -1 > outConfig.Threshold && !PressedButtons["Nunchuk.AccelY-"])
+                if (smoothedNunAccelY * -1 > outConfig.Threshold && !PressedButtons["Nunchuk.AccelY-"])
                 {
                     PressedButtons["Nunchuk.AccelY-"] = true;
                     this.executeButtonDown(tempBtnKey);
                 }
-                else if (accelState.Values.Y * -1 < outConfig.Threshold && PressedButtons["Nunchuk.AccelY-"])
+                else if (smoothedNunAccelY * -1 < outConfig.Threshold && PressedButtons["Nunchuk.AccelY-"])
                 {
                     PressedButtons["Nunchuk.AccelY-"] = false;
                     this.executeButtonUp(tempBtnKey);
@@ -580,21 +706,21 @@ namespace WiiTUIO.Provider
             tempBtnKey = string.Concat(offscreen, "Nunchuk.AccelZ+");
             if (this.config.TryGetValue(tempBtnKey, out outConfig))
             {
-                if (accelState.Values.Z > 0)
+                if (smoothedNunAccelZ > 0)
                 {
-                    updateStickHandlers(outConfig, accelState.Values.Z);
+                    updateStickHandlers(outConfig, smoothedNunAccelZ);
                 }
-                else if (accelState.Values.Z == 0)
+                else if (smoothedNunAccelZ == 0)
                 {
                     updateStickHandlers(outConfig, 0);
                 }
 
-                if (accelState.Values.Z > outConfig.Threshold && !PressedButtons["Nunchuk.AccelZ+"])
+                if (smoothedNunAccelZ > outConfig.Threshold && !PressedButtons["Nunchuk.AccelZ+"])
                 {
                     PressedButtons["Nunchuk.AccelZ+"] = true;
                     this.executeButtonDown(tempBtnKey);
                 }
-                else if (accelState.Values.Z < outConfig.Threshold && PressedButtons["Nunchuk.AccelZ+"])
+                else if (smoothedNunAccelZ < outConfig.Threshold && PressedButtons["Nunchuk.AccelZ+"])
                 {
                     PressedButtons["Nunchuk.AccelZ+"] = false;
                     this.executeButtonUp(tempBtnKey);
@@ -604,25 +730,56 @@ namespace WiiTUIO.Provider
             tempBtnKey = string.Concat(offscreen, "Nunchuk.AccelZ-");
             if (this.config.TryGetValue(tempBtnKey, out outConfig))
             {
-                if (accelState.Values.Z < 0)
+                if (smoothedNunAccelZ < 0)
                 {
-                    updateStickHandlers(outConfig, accelState.Values.Z * -1);
+                    updateStickHandlers(outConfig, smoothedNunAccelZ * -1);
                 }
-                else if (accelState.Values.Z == 0)
+                else if (smoothedNunAccelZ == 0)
                 {
                     updateStickHandlers(outConfig, 0);
                 }
 
-                if (accelState.Values.Z * -1 > outConfig.Threshold && !PressedButtons["Nunchuk.AccelZ-"])
+                if (smoothedNunAccelZ * -1 > outConfig.Threshold && !PressedButtons["Nunchuk.AccelZ-"])
                 {
                     PressedButtons["Nunchuk.AccelZ-"] = true;
                     this.executeButtonDown(tempBtnKey);
                 }
-                else if (accelState.Values.Z * -1 < outConfig.Threshold && PressedButtons["Nunchuk.AccelZ-"])
+                else if (smoothedNunAccelZ * -1 < outConfig.Threshold && PressedButtons["Nunchuk.AccelZ-"])
                 {
                     PressedButtons["Nunchuk.AccelZ-"] = false;
                     this.executeButtonUp(tempBtnKey);
                 }
+            }
+
+            {
+                // Smoothed values update + shake detection
+                var now = DateTime.Now;
+                smoothedNunAccelX = smoothedNunAccelX * 0.9f + accelState.Values.X * 0.1f;
+                smoothedNunAccelY = smoothedNunAccelY * 0.9f + accelState.Values.Y * 0.1f;
+                smoothedNunAccelZ = smoothedNunAccelZ * 0.9f + accelState.Values.Z * 0.1f;
+
+                float totalAccel = (float)Math.Sqrt(Math.Pow(smoothedNunAccelX, 2) + Math.Pow(smoothedNunAccelY, 2) + Math.Pow(smoothedNunAccelZ, 2));
+
+                if (nunchukStabilizationCounter < STABILIZATION_FRAMES)
+                {
+                    nunchukStabilizationCounter++;
+                    nunLastAccel = totalAccel;
+                    return;
+                }
+
+                float delta = totalAccel - nunLastAccel;
+
+                if (this.config.ContainsKey(offscreen + "Nunchuk.Shake"))
+                {
+                    ProcessNunchukShake("Nunchuk.Shake", offscreen + "Nunchuk.Shake", delta,
+                        ref nunShakeCounter, ref nunLastShakeTime,
+                        (float)Settings.Default.shake_nunchukthreshold,
+                        Settings.Default.shake_nunchukcount,
+                        Settings.Default.shake_maxTimeInBetween,
+                        Settings.Default.shake_pressedTime);
+                }
+
+                nunLastAccel = totalAccel;
             }
         }
 
