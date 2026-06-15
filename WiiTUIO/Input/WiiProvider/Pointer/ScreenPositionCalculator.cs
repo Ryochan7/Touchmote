@@ -82,6 +82,9 @@ namespace WiiTUIO.Provider
 
         public CalibrationSettings settings;
 
+        private float offsetTR, offsetBR, offsetBL, offsetTL; // Offsets de ángulo
+        private float angleTR, angleBR, angleBL, angleTL; // Ángulos de los lados
+
         public ScreenPositionCalculator(int id, CalibrationSettings settings)
         {
             this.wiimoteId = id;
@@ -161,9 +164,25 @@ namespace WiiTUIO.Provider
 
         private void recalculateLightgunCoordBounds()
         {
-            //Console.WriteLine($"KEEP ME INSIDE {1 - Settings.Default.CalibrationMarginX * 2}");
-            boundsX = (1.0f) / (bottomRightPt.X - topLeftPt.X);
-            boundsY = (1.0f) / (bottomRightPt.Y - topLeftPt.Y);
+            if (Settings.Default.pointer_4IRMode == "diamond")
+            {
+                boundsX = (Math.Abs(this.settings.Right - this.settings.Left) > double.Epsilon) ? 1.0 / (this.settings.Right - this.settings.Left) : 0;
+                boundsY = (Math.Abs(this.settings.Bottom - this.settings.Top) > double.Epsilon) ? 1.0 / (this.settings.Bottom - this.settings.Top) : 0;
+            }
+            else if (Settings.Default.pointer_4IRMode == "square" ||
+                Settings.Default.pointer_4IRMode == "none")
+            {
+                //Console.WriteLine($"KEEP ME INSIDE {1 - Settings.Default.CalibrationMarginX * 2}");
+                boundsX = (1.0f) / (bottomRightPt.X - topLeftPt.X);
+                boundsY = (1.0f) / (bottomRightPt.Y - topLeftPt.Y);
+            }
+        }
+
+        private float NormalizeAngle(float angle)
+        {
+            while (angle > MathF.PI) angle -= 2 * MathF.PI;
+            while (angle < -MathF.PI) angle += 2 * MathF.PI;
+            return angle;
         }
 
         public CursorPos CalculateCursorPos(WiimoteState wiimoteState)
@@ -317,7 +336,7 @@ namespace WiiTUIO.Provider
                 // Need to invert X coordinate for resultPos here
                 resultPos.X = 1 - resultPos.X;
             }
-            else
+            else if (Settings.Default.pointer_4IRMode == "square")
             {
                 byte seenFlags = 0;
                 double Roll = Math.Atan2(wiimoteState.AccelState.Values.X, wiimoteState.AccelState.Values.Z);
@@ -503,10 +522,151 @@ namespace WiiTUIO.Provider
                 }
                 */
             }
+            else if (Settings.Default.pointer_4IRMode == "diamond")
+            {
+                byte seenFlags = 0;
+                int foundCount = 0;
+                var visiblePoints = new List<PointF>();
+
+                // --- PHASE 1: Identify points ---
+                for (int i = 0; i < 4; i++)
+                {
+                    if (irState.IRSensors[i].Found)
+                    {
+                        visiblePoints.Add(irState.IRSensors[i].Position);
+                        foundCount++;
+                    }
+                }
+
+                if (foundCount >= 3)
+                {
+                    double Roll = Math.Atan2(wiimoteState.AccelState.Values.X, wiimoteState.AccelState.Values.Z);
+
+                    median = new PointF();
+                    foreach (var p in visiblePoints) { median.X += p.X; median.Y += p.Y; }
+                    median.X /= foundCount;
+                    median.Y /= foundCount;
+                    foreach (var p in visiblePoints)
+                    {
+                        double point_angle = Math.Atan2(p.Y - median.Y, p.X - median.X) - Roll;
+                        point_angle += (MathF.PI / 4);
+                        if (point_angle < 0) point_angle += 2 * MathF.PI;
+                        if (point_angle > 2 * MathF.PI) point_angle -= 2 * MathF.PI;
+                        int index = (int)(point_angle / (MathF.PI / 2));
+                        int finalIndex = 0;
+                        switch (index)
+                        {
+                            case 0: finalIndex = 1; break; // Right
+                            case 1: finalIndex = 2; break; // Bottom
+                            case 2: finalIndex = 3; break; // Left
+                            case 3: finalIndex = 0; break; // Top
+                        }
+                        finalPos[finalIndex] = p;
+                        seenFlags |= (byte)(1 << finalIndex);
+                    }
+                }
+
+                // --- PHASE 2: Reconstruction ---
+                if (foundCount == 3)
+                {
+                    // Tu lógica perfecta para 3 puntos
+                    int missingIdx = -1;
+                    for (int i = 0; i < 4; i++) { if ((seenFlags & (1 << i)) == 0) { missingIdx = i; break; } }
+                    int prevIdx = (missingIdx + 3) % 4;
+                    int nextIdx = (missingIdx + 1) % 4;
+                    int oppositeIdx = (missingIdx + 2) % 4;
+                    PointF center = new PointF { X = (finalPos[prevIdx].X + finalPos[nextIdx].X) / 2, Y = (finalPos[prevIdx].Y + finalPos[nextIdx].Y) / 2 };
+                    finalPos[missingIdx] = new PointF { X = 2 * center.X - finalPos[oppositeIdx].X, Y = 2 * center.Y - finalPos[oppositeIdx].Y };
+
+                    seenFlags = 0x0F;
+                }
+
+                // 3. APRENDIZAJE CONTINUO (Lógica OpenFIRE)
+                if (seenFlags != 0)
+                {
+                    const uint STABILITY_CHECK = (1 << 5);
+                    for (int i = 0; i < 4; i++)
+                    {
+                        if ((seenFlags & (1 << i)) != 0) { see[i] = (see[i] << 1) | 1; }
+                        else { see[i] = 0; }
+                    }
+                    if ((seenFlags & 0x0F) == 0x0F)
+                    {
+                        angleTR = MathF.Atan2(finalPos[0].Y - finalPos[1].Y, finalPos[1].X - finalPos[0].X);
+                        angleBR = MathF.Atan2(finalPos[1].Y - finalPos[2].Y, finalPos[2].X - finalPos[1].X);
+                        angleBL = MathF.Atan2(finalPos[2].Y - finalPos[3].Y, finalPos[3].X - finalPos[2].X);
+                        angleTL = MathF.Atan2(finalPos[3].Y - finalPos[0].Y, finalPos[0].X - finalPos[3].X);
+                        double current_global_angle = MathF.Atan2(finalPos[3].Y - finalPos[1].Y, finalPos[1].X - finalPos[3].X);
+                        offsetTR = NormalizeAngle(angleTR - (float)current_global_angle);
+                        offsetBR = NormalizeAngle(angleBR - (float)current_global_angle);
+                        offsetBL = NormalizeAngle(angleBL - (float)current_global_angle);
+                        offsetTL = NormalizeAngle(angleTL - (float)current_global_angle);
+                    }
+
+                    if ((see[0] & see[1] & STABILITY_CHECK) == STABILITY_CHECK)
+                    {
+                        angle = MathF.Atan2(finalPos[0].Y - finalPos[1].Y, finalPos[1].X - finalPos[0].X) - offsetTR;
+                    }
+                    else if ((see[1] & see[2] & STABILITY_CHECK) == STABILITY_CHECK)
+                    {
+                        angle = MathF.Atan2(finalPos[1].Y - finalPos[2].Y, finalPos[2].X - finalPos[1].X) - offsetBR;
+                    }
+                    else if ((see[2] & see[3] & STABILITY_CHECK) == STABILITY_CHECK)
+                    {
+                        angle = MathF.Atan2(finalPos[2].Y - finalPos[3].Y, finalPos[3].X - finalPos[2].X) - offsetBL;
+                    }
+                    else if ((see[3] & see[0] & STABILITY_CHECK) == STABILITY_CHECK)
+                    {
+                        angle = MathF.Atan2(finalPos[3].Y - finalPos[0].Y, finalPos[0].X - finalPos[3].X) - offsetTL;
+                    }
+
+                    //double Roll = Math.Atan2(wiimoteState.AccelState.Values.X, wiimoteState.AccelState.Values.Z);
+                    //angle = Roll;
+                }
+
+                // --- PHASE 3: WARPER Y SALIDA ---
+                if ((seenFlags & 0x0F) == 0x0F)
+                {
+                    width = MathF.Hypot(finalPos[1].Y - finalPos[3].Y, finalPos[1].X - finalPos[3].X);
+                    height = MathF.Hypot(finalPos[2].Y - finalPos[0].Y, finalPos[2].X - finalPos[0].X);
+
+
+                    pWarper.setSource(finalPos[1].X, finalPos[1].Y, finalPos[2].X, finalPos[2].Y, finalPos[3].X, finalPos[3].Y, finalPos[0].X, finalPos[0].Y);
+                    float[] fWarped = pWarper.warp();
+                    resultPos.X = fWarped[0];
+                    resultPos.Y = fWarped[1];
+
+                    /*for (int i = 0; i < 4; i++)
+                    {
+                        Trace.Write($"{i}: [{finalPos[i].X}, {finalPos[i].Y}, ");
+                    }
+                    */
+
+                    //Trace.WriteLine("");
+
+                    if (double.IsNaN(resultPos.X) || double.IsNaN(resultPos.Y))
+                    {
+                        CursorPos err = lastPos;
+                        err.OutOfReach = true;
+                        err.OffScreen = true;
+
+                        return err;
+                    }
+                }
+                else
+                {
+                    CursorPos err = lastPos;
+                    err.OutOfReach = true;
+                    err.OffScreen = true;
+
+                    return err;
+                }
+
+            }
 
 
             /*System.Windows.Point filteredPoint = coordFilter.AddGetFilteredCoord(new System.Windows.Point(relativePosition.X, relativePosition.Y), 1.0, 1.0);
-            
+
             relativePosition.X = (float)filteredPoint.X;
             relativePosition.Y = (float)filteredPoint.Y;
 
@@ -597,22 +757,37 @@ namespace WiiTUIO.Provider
         public void RecalculateLightgunAspect(double targetAspect)
         {
             this.targetAspectRatio = targetAspect;
+            float boundLeftX = 0.0f, boundTopY = 0.0f;
+            float boundRightX = 1.0f, boundBottomY = 1.0f;
 
-            int outputWidth = (int)(targetAspect * primaryScreen.Bounds.Height);
-            double scaleFactor = outputWidth / (double)primaryScreen.Bounds.Width;
-            double target_topLeftX = ((trueBottomRightPt.X + trueTopLeftPt.X) / 2) - ((trueBottomRightPt.X - trueTopLeftPt.X) * scaleFactor / 2);
-            double target_bottomRightY = trueBottomRightPt.X - (target_topLeftX - trueTopLeftPt.X);
+            double sourceAspect = primaryScreen.Bounds.Width /
+                (double)primaryScreen.Bounds.Height;
+
+            if (sourceAspect > targetAspect)
+            {
+                // Pillarbox
+                double dead = (1.0 - (targetAspect / sourceAspect)) / 2.0;
+                boundLeftX = (float)dead;
+                boundRightX = (float)(1.0 - dead);
+            }
+            else
+            {
+                // Letterbox
+                double dead = (1.0 - (sourceAspect / targetAspect)) / 2.0;
+                boundTopY = (float)dead;
+                boundBottomY = (float)(1.0 - dead);
+            }
 
             topLeftPt = new PointF()
             {
-                X = (float)target_topLeftX,
-                Y = trueTopLeftPt.Y
+                X = boundLeftX,
+                Y = boundTopY
             };
 
             bottomRightPt = new PointF()
             {
-                X = (float)target_bottomRightY,
-                Y = trueBottomRightPt.Y
+                X = boundRightX,
+                Y = boundBottomY
             };
 
             recalculateLightgunCoordBounds();
