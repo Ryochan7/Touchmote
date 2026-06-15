@@ -1124,6 +1124,9 @@ namespace WiiTUIO.Output.Handlers
                     //testLightFilterY.Filter(previousLightCursorCoorPoint.Y * 1.001, 1.0 / elapsedMs);
 
                     wasInReach = false;
+
+                    testLightFilterX.Reset();
+                    testLightFilterY.Reset();
                 }
 
                 return true;
