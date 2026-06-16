@@ -620,8 +620,9 @@ namespace WiiTUIO.Provider
                         angle = MathF.Atan2(finalPos[3].Y - finalPos[0].Y, finalPos[0].X - finalPos[3].X) - offsetTL;
                     }
 
-                    //double Roll = Math.Atan2(wiimoteState.AccelState.Values.X, wiimoteState.AccelState.Values.Z);
-                    //angle = Roll;
+                    // Use Roll angle from Wiimote accel
+                    double Roll = Math.Atan2(wiimoteState.AccelState.Values.X, wiimoteState.AccelState.Values.Z);
+                    angle = Roll;
                 }
 
                 // --- PHASE 3: WARPER Y SALIDA ---
@@ -638,11 +639,13 @@ namespace WiiTUIO.Provider
 
                     /*for (int i = 0; i < 4; i++)
                     {
-                        Trace.Write($"{i}: [{finalPos[i].X}, {finalPos[i].Y}, ");
+                        Trace.Write($"{i}: [{finalPos[i].X}, {finalPos[i].Y}], ");
                     }
-                    */
 
-                    //Trace.WriteLine("");
+                    double Roll = Math.Atan2(wiimoteState.AccelState.Values.X, wiimoteState.AccelState.Values.Z);
+                    Trace.WriteLine($"{angle} {Roll}");
+                    Trace.WriteLine("");
+                    */
 
                     if (double.IsNaN(resultPos.X) || double.IsNaN(resultPos.Y))
                     {
