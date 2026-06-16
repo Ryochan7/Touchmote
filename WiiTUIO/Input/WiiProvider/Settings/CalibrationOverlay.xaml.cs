@@ -61,6 +61,9 @@ namespace WiiTUIO.Provider
         private double marginXBackup;
         private double marginYBackup;
 
+        // Constant for the side length of the triangle
+        private const double TRIANGLE_SIDE_LENGTH = 20.0;
+
         private CalibPointsViewModel calibPointVM;
 
         /// <summary>
@@ -166,14 +169,246 @@ namespace WiiTUIO.Provider
                 {
                     this.Activate();
 
-                    Color pointColor = IDColor.getColor(keyMapper.WiimoteID);
+                    // Hide all lines and triangles initially
+                    VerticalLineLeft.Visibility = Visibility.Hidden;
+                    VerticalLineRight.Visibility = Visibility.Hidden;
+                    HorizontalLineCenter.Visibility = Visibility.Hidden;
+                    VerticalLineCenter.Visibility = Visibility.Hidden;
+
+                    TriangleLeftTop.Visibility = Visibility.Hidden;
+                    TriangleLeftBottom.Visibility = Visibility.Hidden;
+                    TriangleRightTop.Visibility = Visibility.Hidden;
+                    TriangleRightBottom.Visibility = Visibility.Hidden;
+                    TriangleCenterTop.Visibility = Visibility.Hidden;
+                    TriangleCenterBottom.Visibility = Visibility.Hidden;
+                    TriangleCenterLeft.Visibility = Visibility.Hidden;
+                    TriangleCenterRight.Visibility = Visibility.Hidden;
+
+                    // Hide all grid lines by default
+                    GridLineV1.Visibility = Visibility.Hidden;
+                    GridLineV2.Visibility = Visibility.Hidden;
+                    GridLineV3.Visibility = Visibility.Hidden;
+                    GridLineV4.Visibility = Visibility.Hidden;
+                    GridLineV5.Visibility = Visibility.Hidden;
+                    GridLineH1.Visibility = Visibility.Hidden;
+                    GridLineH2.Visibility = Visibility.Hidden;
+                    GridLineH3.Visibility = Visibility.Hidden;
+                    GridLineH4.Visibility = Visibility.Hidden;
+                    GridLineH5.Visibility = Visibility.Hidden;
+                    // Hide all lines and triangles initially
+                    VerticalLineLeft.Visibility = Visibility.Hidden;
+                    VerticalLineRight.Visibility = Visibility.Hidden;
+                    HorizontalLineCenter.Visibility = Visibility.Hidden;
+                    VerticalLineCenter.Visibility = Visibility.Hidden;
+
+                    TriangleLeftTop.Visibility = Visibility.Hidden;
+                    TriangleLeftBottom.Visibility = Visibility.Hidden;
+                    TriangleRightTop.Visibility = Visibility.Hidden;
+                    TriangleRightBottom.Visibility = Visibility.Hidden;
+                    TriangleCenterTop.Visibility = Visibility.Hidden;
+                    TriangleCenterBottom.Visibility = Visibility.Hidden;
+                    TriangleCenterLeft.Visibility = Visibility.Hidden;
+                    TriangleCenterRight.Visibility = Visibility.Hidden;
+
+                    // Hide all grid lines by default
+                    GridLineV1.Visibility = Visibility.Hidden;
+                    GridLineV2.Visibility = Visibility.Hidden;
+                    GridLineV3.Visibility = Visibility.Hidden;
+                    GridLineV4.Visibility = Visibility.Hidden;
+                    GridLineV5.Visibility = Visibility.Hidden;
+                    GridLineH1.Visibility = Visibility.Hidden;
+                    GridLineH2.Visibility = Visibility.Hidden;
+                    GridLineH3.Visibility = Visibility.Hidden;
+                    GridLineH4.Visibility = Visibility.Hidden;
+                    GridLineH5.Visibility = Visibility.Hidden;
+
+                    /*Color pointColor = IDColor.getColor(keyMapper.WiimoteID);
                     pointColor.R = (byte)(pointColor.R * 0.8);
                     pointColor.G = (byte)(pointColor.G * 0.8);
                     pointColor.B = (byte)(pointColor.B * 0.8);
                     SolidColorBrush brush = new SolidColorBrush(pointColor);
+                    */
+
+                    // Calculate the height of an equilateral triangle (distance from vertex to base)
+                    double triangleHeight = TRIANGLE_SIDE_LENGTH * Math.Sqrt(3) / 2;
+                    // Half the base of the triangle
+                    double halfBase = TRIANGLE_SIDE_LENGTH / 2;
+
+                    double centerX = this.ActualWidth / 2; // Defined here for use in both modes
+                    double centerY = this.ActualHeight / 2; // Defined here for use in both modes
+
+                    SolidColorBrush currentBrush = new SolidColorBrush(Colors.Green); // Default green color
+
+                    // If keyMapper is available, use its color for consistency
+                    if (keyMapper != null)
+                    {
+                        Color pointColor = IDColor.getColor(keyMapper.WiimoteID);
+                        pointColor.R = (byte)(pointColor.R * 0.8);
+                        pointColor.G = (byte)(pointColor.G * 0.8);
+                        pointColor.B = (byte)(pointColor.B * 0.8);
+                        currentBrush = new SolidColorBrush(pointColor);
+                    }
+
+                    // Calculate a lighter green color for the grid (even lighter)
+                    Color lighterGreen = Color.FromArgb(
+                        128,
+                        (byte)Math.Min(255, currentBrush.Color.R + 100), // Increased brightness
+                        (byte)Math.Min(255, currentBrush.Color.G + 100), // Increased brightness
+                        (byte)Math.Min(255, currentBrush.Color.B + 100)  // Increased brightness
+                    );
+                    SolidColorBrush lighterBrush = new SolidColorBrush(lighterGreen);
+
+
+                    if (Settings.Default.pointer_4IRMode == "diamond")
+                    {
+                        // Horizontal line from right center to left
+                        HorizontalLineCenter.X1 = this.ActualWidth;
+                        HorizontalLineCenter.Y1 = centerY;
+                        HorizontalLineCenter.X2 = 0;
+                        HorizontalLineCenter.Y2 = centerY;
+                        HorizontalLineCenter.Stroke = currentBrush;
+                        HorizontalLineCenter.Visibility = Visibility.Visible;
+
+                        // Vertical line from top center to bottom
+                        VerticalLineCenter.X1 = centerX;
+                        VerticalLineCenter.Y1 = 0;
+                        VerticalLineCenter.X2 = centerX;
+                        VerticalLineCenter.Y2 = this.ActualHeight;
+                        VerticalLineCenter.Stroke = currentBrush;
+                        VerticalLineCenter.Visibility = Visibility.Visible;
+
+                        // Triangles for central lines (diamond)
+                        // Top Center Triangle (base at X=centerX, Y=0, points downwards)
+                        TriangleCenterTop.Points = new PointCollection
+                        {
+                            new System.Windows.Point(centerX, triangleHeight),
+                            new System.Windows.Point(centerX - halfBase, 0),
+                            new System.Windows.Point(centerX + halfBase, 0)
+                        };
+                        TriangleCenterTop.Fill = currentBrush;
+                        TriangleCenterTop.Visibility = Visibility.Visible;
+
+                        // Bottom Center Triangle (base at X=centerX, Y=ActualHeight, points upwards)
+                        TriangleCenterBottom.Points = new PointCollection
+                        {
+                            new System.Windows.Point(centerX, this.ActualHeight - triangleHeight),
+                            new System.Windows.Point(centerX - halfBase, this.ActualHeight),
+                            new System.Windows.Point(centerX + halfBase, this.ActualHeight)
+                        };
+                        TriangleCenterBottom.Fill = currentBrush;
+                        TriangleCenterBottom.Visibility = Visibility.Visible;
+
+                        // Left Center Triangle (base at Y=centerY, X=0, points right)
+                        TriangleCenterLeft.Points = new PointCollection
+                        {
+                            new System.Windows.Point(triangleHeight, centerY),
+                            new System.Windows.Point(0, centerY - halfBase),
+                            new System.Windows.Point(0, centerY + halfBase)
+                        };
+                        TriangleCenterLeft.Fill = currentBrush;
+                        TriangleCenterLeft.Visibility = Visibility.Visible;
+
+                        // Right Center Triangle (base at Y=centerY, X=ActualWidth, points left)
+                        TriangleCenterRight.Points = new PointCollection
+                        {
+                            new System.Windows.Point(this.ActualWidth - triangleHeight, centerY),
+                            new System.Windows.Point(this.ActualWidth, centerY - halfBase),
+                            new System.Windows.Point(this.ActualWidth, centerY + halfBase)
+                        };
+                        TriangleCenterRight.Fill = currentBrush;
+                        TriangleCenterRight.Visibility = Visibility.Visible;
+                    }
+                    else if (Settings.Default.pointer_4IRMode == "square" || Settings.Default.pointer_4IRMode == "none")
+                    {
+                        // Logic for "none" or "square" mode (existing vertical lines)
+                        double squareSide = this.ActualHeight; // Assuming the "square" is based on height
+                                                               // Vertical lines extend across the entire height
+                        double leftLineX = centerX - (squareSide / 2);
+                        double rightLineX = centerX + (squareSide / 2);
+
+                        VerticalLineLeft.X1 = leftLineX;
+                        VerticalLineLeft.Y1 = 0;
+                        VerticalLineLeft.X2 = leftLineX;
+                        VerticalLineLeft.Y2 = this.ActualHeight;
+                        VerticalLineLeft.Stroke = currentBrush;
+                        VerticalLineLeft.Visibility = Visibility.Visible;
+
+                        VerticalLineRight.X1 = rightLineX;
+                        VerticalLineRight.Y1 = 0;
+                        VerticalLineRight.X2 = rightLineX;
+                        VerticalLineRight.Y2 = this.ActualHeight;
+                        VerticalLineRight.Stroke = currentBrush;
+                        VerticalLineRight.Visibility = Visibility.Visible;
+
+                        // Triangles for vertical lines (none/square)
+                        // Top Left Triangle (base at Y=0, vertex at leftLineX, points downwards)
+                        TriangleLeftTop.Points = new PointCollection
+                        {
+                            new System.Windows.Point(leftLineX, triangleHeight),
+                            new System.Windows.Point(leftLineX - halfBase, 0),
+                            new System.Windows.Point(leftLineX + halfBase, 0)
+                        };
+                        TriangleLeftTop.Fill = currentBrush;
+                        TriangleLeftTop.Visibility = Visibility.Visible;
+
+                        // Bottom Left Triangle (base at Y=ActualHeight, vertex at leftLineX, points upwards)
+                        TriangleLeftBottom.Points = new PointCollection
+                        {
+                            new System.Windows.Point(leftLineX, this.ActualHeight - triangleHeight),
+                            new System.Windows.Point(leftLineX - halfBase, this.ActualHeight),
+                            new System.Windows.Point(leftLineX + halfBase, this.ActualHeight)
+                        };
+                        TriangleLeftBottom.Fill = currentBrush;
+                        TriangleLeftBottom.Visibility = Visibility.Visible;
+
+                        // Top Right Triangle (base at Y=0, vertex at rightLineX, points downwards)
+                        TriangleRightTop.Points = new PointCollection
+                        {
+                            new System.Windows.Point(rightLineX, triangleHeight),
+                            new System.Windows.Point(rightLineX + halfBase, 0),
+                            new System.Windows.Point(rightLineX - halfBase, 0)
+                        };
+                        TriangleRightTop.Fill = currentBrush;
+                        TriangleRightTop.Visibility = Visibility.Visible;
+
+                        // Bottom Right Triangle (base at Y=ActualHeight, vertex at rightLineX, points upwards)
+                        TriangleRightBottom.Points = new PointCollection
+                        {
+                            new System.Windows.Point(rightLineX, this.ActualHeight - triangleHeight),
+                            new System.Windows.Point(rightLineX + halfBase, this.ActualHeight),
+                            new System.Windows.Point(rightLineX - halfBase, this.ActualHeight)
+                        };
+                        TriangleRightBottom.Fill = currentBrush;
+                        TriangleRightBottom.Visibility = Visibility.Visible;
+
+                        // --- Logic for the grid ---
+                        // The grid will have 5 vertical and 5 horizontal lines, creating 4x4 sections.
+                        // The first vertical and horizontal lines will be centered.
+                        double gridSpacingX = this.ActualWidth / 6; // For 5 vertical lines (6 sections)
+                        double gridSpacingY = this.ActualHeight / 6; // For 5 horizontal lines (6 sections)
+
+                        // Define the dash array for dashed lines
+                        DoubleCollection dashArray = new DoubleCollection { 2, 2 }; // 2 units on, 2 units off
+
+                        // Vertical grid lines
+                        // The central line (GridLineV3) is already at centerX
+                        GridLineV1.X1 = centerX - 2 * gridSpacingX; GridLineV1.Y1 = 0; GridLineV1.X2 = centerX - 2 * gridSpacingX; GridLineV1.Y2 = this.ActualHeight; GridLineV1.Stroke = lighterBrush; GridLineV1.StrokeDashArray = dashArray; GridLineV1.Visibility = Visibility.Visible;
+                        GridLineV2.X1 = centerX - gridSpacingX; GridLineV2.Y1 = 0; GridLineV2.X2 = centerX - gridSpacingX; GridLineV2.Y2 = this.ActualHeight; GridLineV2.Stroke = lighterBrush; GridLineV2.StrokeDashArray = dashArray; GridLineV2.Visibility = Visibility.Visible;
+                        GridLineV3.X1 = centerX; GridLineV3.Y1 = 0; GridLineV3.X2 = centerX; GridLineV3.Y2 = this.ActualHeight; GridLineV3.Stroke = lighterBrush; GridLineV3.StrokeDashArray = dashArray; GridLineV3.Visibility = Visibility.Visible; // Central vertical line
+                        GridLineV4.X1 = centerX + gridSpacingX; GridLineV4.Y1 = 0; GridLineV4.X2 = centerX + gridSpacingX; GridLineV4.Y2 = this.ActualHeight; GridLineV4.Stroke = lighterBrush; GridLineV4.StrokeDashArray = dashArray; GridLineV4.Visibility = Visibility.Visible;
+                        GridLineV5.X1 = centerX + 2 * gridSpacingX; GridLineV5.Y1 = 0; GridLineV5.X2 = centerX + 2 * gridSpacingX; GridLineV5.Y2 = this.ActualHeight; GridLineV5.Stroke = lighterBrush; GridLineV5.StrokeDashArray = dashArray; GridLineV5.Visibility = Visibility.Visible;
+
+                        // Horizontal grid lines
+                        // The central line (GridLineH3) is already at centerY
+                        GridLineH1.X1 = 0; GridLineH1.Y1 = centerY - 2 * gridSpacingY; GridLineH1.X2 = this.ActualWidth; GridLineH1.Y2 = centerY - 2 * gridSpacingY; GridLineH1.Stroke = lighterBrush; GridLineH1.StrokeDashArray = dashArray; GridLineH1.Visibility = Visibility.Visible;
+                        GridLineH2.X1 = 0; GridLineH2.Y1 = centerY - gridSpacingY; GridLineH2.X2 = this.ActualWidth; GridLineH2.Y2 = centerY - gridSpacingY; GridLineH2.Stroke = lighterBrush; GridLineH2.StrokeDashArray = dashArray; GridLineH2.Visibility = Visibility.Visible;
+                        GridLineH3.X1 = 0; GridLineH3.Y1 = centerY; GridLineH3.X2 = this.ActualWidth; GridLineH3.Y2 = centerY; GridLineH3.Stroke = lighterBrush; GridLineH3.StrokeDashArray = dashArray; GridLineH3.Visibility = Visibility.Visible; // Central horizontal line
+                        GridLineH4.X1 = 0; GridLineH4.Y1 = centerY + gridSpacingY; GridLineH4.X2 = this.ActualWidth; GridLineH4.Y2 = centerY + gridSpacingY; GridLineH4.Stroke = lighterBrush; GridLineH4.StrokeDashArray = dashArray; GridLineH4.Visibility = Visibility.Visible;
+                        GridLineH5.X1 = 0; GridLineH5.Y1 = centerY + 2 * gridSpacingY; GridLineH5.X2 = this.ActualWidth; GridLineH5.Y2 = centerY + 2 * gridSpacingY; GridLineH5.Stroke = lighterBrush; GridLineH5.StrokeDashArray = dashArray; GridLineH5.Visibility = Visibility.Visible;
+                    }
 
                     this.wiimoteNo.Text = "Wiimote " + keyMapper.WiimoteID;
-                    this.wiimoteNo.Foreground = brush;
+                    this.wiimoteNo.Foreground = currentBrush;
                     this.insText2.Text = CALIB_TEST_INTRO_TEXT;
 
                     this.TextBorder.SetValue(Canvas.LeftProperty, 0.5 * this.ActualWidth - (this.TextBorder.ActualWidth / 2));
@@ -182,15 +417,15 @@ namespace WiiTUIO.Provider
                     this.CalibrationCanvas.Opacity = 0.0;
                     this.CalibrationCanvas.Visibility = Visibility.Visible;
 
-                    this.elipse.Stroke = this.lineX.Stroke = this.lineY.Stroke = brush;
+                    this.elipse.Stroke = this.lineX.Stroke = this.lineY.Stroke = currentBrush;
                     this.elipse.Fill = new SolidColorBrush(Colors.Black);
                     this.elipse.Fill.Opacity = 0.9;
 
-                    this.elipseTL.Stroke = this.lineXTL.Stroke = this.lineYTL.Stroke = brush;
+                    this.elipseTL.Stroke = this.lineXTL.Stroke = this.lineYTL.Stroke = currentBrush;
                     this.elipseTL.Fill = new SolidColorBrush(Colors.Black);
                     this.elipseTL.Fill.Opacity = 0.9;
 
-                    this.elipseBR.Stroke = this.lineXBR.Stroke = this.lineYBR.Stroke = brush;
+                    this.elipseBR.Stroke = this.lineXBR.Stroke = this.lineYBR.Stroke = currentBrush;
                     this.elipseBR.Fill = new SolidColorBrush(Colors.Black);
                     this.elipseBR.Fill.Opacity = 0.9;
 

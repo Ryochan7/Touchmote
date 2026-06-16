@@ -74,7 +74,39 @@
             <Controls:NumericUpDown StringFormat="F3" Value="{Binding CenterYCoorAdj}" Interval="0.01" Maximum="1.0" Margin="8,8,0,0" FontFamily="Segoe UI Semilight" FontSize="15" Minimum="0.0" MinWidth="100" Height="30" BorderBrush="#FFDEDEDE" Background="White">
             </Controls:NumericUpDown>
             <!--<TextBox Text="{Binding CenterYCoorAdj, UpdateSourceTrigger=LostFocus, StringFormat='F3'}" Width="100" Height="30" Margin="8,8,0,0" />-->
-
         </UniformGrid>
+
+        <!-- Líneas de cuadrícula para los modos "none" o "square" -->
+        <Line Name="GridLineV1" Stroke="LightGreen" StrokeThickness="1" Visibility="Hidden" />
+        <Line Name="GridLineV2" Stroke="LightGreen" StrokeThickness="1" Visibility="Hidden" />
+        <Line Name="GridLineV3" Stroke="LightGreen" StrokeThickness="1" Visibility="Hidden" />
+        <Line Name="GridLineV4" Stroke="LightGreen" StrokeThickness="1" Visibility="Hidden" />
+        <Line Name="GridLineV5" Stroke="LightGreen" StrokeThickness="1" Visibility="Hidden" />
+
+        <Line Name="GridLineH1" Stroke="LightGreen" StrokeThickness="1" Visibility="Hidden" />
+        <Line Name="GridLineH2" Stroke="LightGreen" StrokeThickness="1" Visibility="Hidden" />
+        <Line Name="GridLineH3" Stroke="LightGreen" StrokeThickness="1" Visibility="Hidden" />
+        <Line Name="GridLineH4" Stroke="LightGreen" StrokeThickness="1" Visibility="Hidden" />
+        <Line Name="GridLineH5" Stroke="LightGreen" StrokeThickness="1" Visibility="Hidden" />
+
+        <!-- Líneas verticales para el modo de calibración "none" o "square" -->
+        <Line Name="VerticalLineLeft" Stroke="Green" StrokeThickness="2" Visibility="Hidden" />
+        <Line Name="VerticalLineRight" Stroke="Green" StrokeThickness="2" Visibility="Hidden" />
+
+        <!-- Nuevas líneas para el modo de calibración "diamond" -->
+        <Line Name="HorizontalLineCenter" Stroke="Green" StrokeThickness="2" Visibility="Hidden" />
+        <Line Name="VerticalLineCenter" Stroke="Green" StrokeThickness="2" Visibility="Hidden" />
+
+        <!-- Triángulos equiláteros en los extremos de las líneas verticales (para "none" o "square") -->
+        <Polygon Name="TriangleLeftTop" Fill="Green" Visibility="Hidden" />
+        <Polygon Name="TriangleLeftBottom" Fill="Green" Visibility="Hidden" />
+        <Polygon Name="TriangleRightTop" Fill="Green" Visibility="Hidden" />
+        <Polygon Name="TriangleRightBottom" Fill="Green" Visibility="Hidden" />
+
+        <!-- Triángulos equiláteros en los extremos de las líneas centrales (para "diamond") -->
+        <Polygon Name="TriangleCenterTop" Fill="Green" Visibility="Hidden" />
+        <Polygon Name="TriangleCenterBottom" Fill="Green" Visibility="Hidden" />
+        <Polygon Name="TriangleCenterLeft" Fill="Green" Visibility="Hidden" />
+        <Polygon Name="TriangleCenterRight" Fill="Green" Visibility="Hidden" />
     </Canvas>
 </Window>
